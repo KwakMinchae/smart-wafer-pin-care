@@ -1,0 +1,788 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>Smart Pin Care</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: live isometric floor on top, digital twin below (overview of all cards, or one card in Sense / Predict / Act columns). */
+:root{
+  --bg:#eef1f4; --panel:#ffffff; --panel2:#f6f8fa; --line:#dfe4ea; --fg:#0f1720; --muted:#5d6876; --faint:#98a3b0;
+  --ok:#15803d; --okfill:#22c55e; --okbg:#e7f6ec;
+  --warn:#b45309; --warnfill:#f59e0b; --warnbg:#fff3dc;
+  --busy:#1d4ed8; --busyfill:#3b82f6; --busybg:#e6eeff;
+  --floorbg:#e6eaee; --track:#e9edf1;
+  --sans:"IBM Plex Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d1116; --panel:#151b22; --panel2:#1a222b; --line:#27313c; --fg:#e8edf2; --muted:#9aa6b3; --faint:#5f6b78;
+  --ok:#4ade80; --okfill:#22c55e; --okbg:#11291b; --warn:#fbbf24; --warnfill:#f59e0b; --warnbg:#2d2110;
+  --busy:#8fb0ff; --busyfill:#3b82f6; --busybg:#14233f; --floorbg:#1a2129; --track:#222b35; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d1116; --panel:#151b22; --panel2:#1a222b; --line:#27313c; --fg:#e8edf2; --muted:#9aa6b3; --faint:#5f6b78;
+  --ok:#4ade80; --okfill:#22c55e; --okbg:#11291b; --warn:#fbbf24; --warnfill:#f59e0b; --warnbg:#2d2110;
+  --busy:#8fb0ff; --busyfill:#3b82f6; --busybg:#14233f; --floorbg:#1a2129; --track:#222b35; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--fg)}
+body{font-family:var(--sans);font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased}
+.app{max-width:1560px;margin:0 auto;padding-block:12px 16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:10px}
+button{font:inherit;color:inherit}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* top bar */
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px}
+.brand{display:flex;align-items:baseline;gap:12px;min-width:0;margin-right:auto}
+.brand h1{font-size:20px;font-weight:700;margin:0;letter-spacing:-.01em}
+.brand span{color:var(--muted)}
+.seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+.seg button{border:0;background:none;padding:7px 12px;border-radius:7px;cursor:pointer;color:var(--muted);font-weight:500}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.seg button:focus-visible,.tr button:focus-visible,.tile:focus-visible,.crumb button:focus-visible{outline:2px solid var(--busyfill);outline-offset:2px}
+.tr{display:flex;align-items:center;gap:6px}
+.tr button{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--panel);cursor:pointer;display:grid;place-items:center}
+.tr button svg{width:14px;height:14px;fill:currentColor}
+.steps{display:flex;gap:3px;margin-left:6px}
+.steps i{width:18px;height:6px;border-radius:3px;background:var(--line);cursor:pointer}
+.steps i.done{background:var(--faint)} .steps i.on{background:var(--fg)}
+
+/* panels */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;position:relative;min-width:0}
+.eyebrow{font-size:11px;letter-spacing:.09em;text-transform:uppercase;font-weight:600;color:var(--muted)}
+.floor{background:var(--floorbg);overflow:hidden}
+.floor .eyebrow{position:absolute;left:16px;top:12px}
+.legend{position:absolute;right:16px;top:10px;display:flex;gap:14px;font-size:12px;color:var(--muted)}
+.legend span{display:flex;align-items:center;gap:6px}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none}
+.d-ok{background:var(--okfill)} .d-warn{background:var(--warnfill)} .d-busy{background:var(--busyfill)} .d-idle{background:var(--faint)}
+#floor{display:block;width:100%;height:clamp(280px,42vh,600px)}
+.caption{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:8px 16px;display:flex;gap:10px;align-items:center;white-space:nowrap;box-shadow:0 4px 18px rgba(15,23,32,.08);max-width:calc(100% - 32px)}
+.caption .k{font-family:var(--mono);color:var(--muted);font-size:12px}
+.caption b{font-weight:600;overflow:hidden;text-overflow:ellipsis}
+
+/* svg text */
+.lbl{font:500 17px var(--sans);fill:var(--fg)}
+.lead{stroke:var(--faint);stroke-width:1.2}
+.leadDot{fill:var(--fg)}
+.tag{font:600 14px var(--sans)}
+[data-tip]{cursor:help}
+
+/* twin */
+.twin{padding:12px 16px 14px;display:grid;gap:10px}
+.twin-h{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.crumb{display:flex;align-items:center;gap:8px;font-weight:600}
+.crumb button{border:0;background:none;padding:2px 0;cursor:pointer;color:var(--muted);font-weight:500}
+.crumb button:hover{color:var(--fg)}
+.crumb .sep{color:var(--faint)}
+.status{font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;display:inline-flex;gap:6px;align-items:center}
+.s-ok{background:var(--okbg);color:var(--ok)} .s-warn{background:var(--warnbg);color:var(--warn)} .s-busy{background:var(--busybg);color:var(--busy)} .s-idle{background:var(--panel2);color:var(--muted)}
+.views>section{min-width:0;animation:fade .35s ease}
+.views>section[aria-hidden="true"]{display:none}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}}
+.box{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 13px;min-width:0}
+.box h3{margin:0 0 8px;font-size:13px;font-weight:600;display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.box h3 small{font-weight:400;color:var(--muted);font-size:12px}
+.ref{color:var(--faint);font-weight:400;font-size:11px;font-family:var(--mono)}
+
+/* overview */
+.ov{display:grid;gap:14px;align-content:start}
+.tiles{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.tile{all:unset;box-sizing:border-box;cursor:pointer;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 11px;display:grid;gap:6px;transition:border-color .3s,background .3s}
+.tile:hover{border-color:var(--faint)}
+.tile .t1{display:flex;justify-content:space-between;align-items:center;font-weight:600}
+.tile .loc{color:var(--muted);font-size:12px}
+.tile .hr{display:flex;align-items:center;gap:8px}
+.tile .hn{font-family:var(--mono);font-size:18px;font-weight:500;width:2.2em}
+.hb{flex:1;height:5px;border-radius:3px;background:var(--track);overflow:hidden}
+.hb i{display:block;height:100%;background:var(--okfill);transition:width .25s,background .3s}
+.tile .st{font-size:12px;color:var(--muted)}
+.tile.warn{border-color:var(--warnfill);background:var(--warnbg)} .tile.warn .hb i{background:var(--warnfill)} .tile.warn .st{color:var(--warn);font-weight:600}
+.tile.busy{border-color:var(--busyfill);background:var(--busybg)} .tile.busy .st{color:var(--busy);font-weight:600}
+.flow{display:grid;grid-template-columns:minmax(0,1.5fr) 34px minmax(0,1fr) 34px minmax(0,1.1fr) 34px minmax(0,1.1fr) 34px minmax(0,1.2fr);grid-template-rows:repeat(4,auto);row-gap:6px;align-items:center}
+.chip{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 10px;display:flex;justify-content:space-between;gap:8px;align-items:center;min-width:0;transition:border-color .3s,background .3s}
+.chip b{font-weight:600}
+.chip small{color:var(--muted);font-size:12px}
+.chip.on{border-color:var(--busyfill);background:var(--busybg)}
+.chip.warn{border-color:var(--warnfill);background:var(--warnbg)}
+.wire{height:2px;background:var(--faint);opacity:.6;position:relative;overflow:hidden}
+.wire.on{opacity:1}
+.wire.on::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,var(--busyfill) 0 8px,transparent 8px 16px);animation:flow 0.9s linear infinite}
+@keyframes flow{to{background-position:16px 0}}
+.hub{grid-row:1/5;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;height:100%;display:flex;flex-direction:column;justify-content:center;gap:4px;min-width:0}
+.hub b{font-weight:600} .hub small{color:var(--muted);font-size:12px}
+.arrow{grid-row:1/5;height:2px;background:var(--faint);position:relative}
+.arrow::after{content:"";position:absolute;right:-1px;top:-4px;border:5px solid transparent;border-left:7px solid var(--faint);border-right:0}
+.colh{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:6px}
+
+/* detail */
+.cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.col{display:grid;gap:8px;align-content:start;min-width:0}
+.colt{display:flex;align-items:baseline;gap:10px}
+.colt b{font-size:14px;letter-spacing:.08em;text-transform:uppercase}
+.colt span{color:var(--muted)}
+.rows{display:grid;gap:4px}
+.row{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr) 82px;gap:10px;align-items:center}
+.row .l{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .v{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:13px;white-space:nowrap}
+.row .v.warn{color:var(--warn);font-weight:500}
+.spark{width:100%;height:24px;display:block}
+.src{margin-top:9px;font-size:12px;color:var(--faint)}
+.pred{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:10px}
+.nmap,.smap{width:100%;height:auto;display:block}
+.verdict{font-size:12px;margin-top:6px;min-height:1.4em;font-weight:600}
+.verdict.on{color:var(--fg)}
+.mini{font-size:11px;color:var(--muted);margin-top:4px;display:grid;gap:2px}
+.models{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.m{display:grid;gap:2px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;transition:border-color .3s,background .3s;min-width:0}
+.m .mh{display:flex;justify-content:space-between;align-items:baseline}
+.m .job{font-weight:600;font-size:13px;white-space:nowrap}
+.m .mn{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m small{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m .mh{gap:8px}.m .out{font-family:var(--mono);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--faint);min-width:0}
+.m.run{border-color:var(--busyfill);background:var(--busybg)} .m.run .out{color:var(--busy)}
+.m.done .out{color:var(--fg);font-weight:500}
+.m.done.alert .out{color:var(--warn)}
+.dec .big{display:flex;align-items:baseline;gap:8px}
+.dec .big .n{font-family:var(--mono);font-size:34px;line-height:1;font-weight:500;transition:color .3s}
+.dec .big .n.warn{color:var(--warn)}
+.dec .big small{color:var(--muted)}
+.band{position:relative;margin-top:12px}
+.band .segs{display:grid;grid-template-columns:30fr 20fr 20fr 30fr;gap:3px}
+.band .segs div{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:6px 7px;font-size:11.5px;color:var(--muted);line-height:1.2;transition:all .3s;min-width:0}
+.band .segs div b{display:block;font-family:var(--mono);font-weight:500;font-size:11px;color:var(--faint)}
+.band .segs div.pick{border-color:var(--fg);color:var(--fg);font-weight:600;background:var(--panel)}
+.band .segs div.pick.warn{border-color:var(--warnfill);background:var(--warnbg);color:var(--warn)}
+.band .mk{position:absolute;top:-7px;width:0;height:0;border:6px solid transparent;border-top:7px solid var(--fg);transform:translateX(-6px);transition:left .25s}
+.why{margin-top:9px;font-size:12.5px;color:var(--muted);min-height:2.6em}
+.log{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.log li{display:grid;grid-template-columns:62px 16px minmax(0,1fr);gap:6px;align-items:center;font-size:12.5px;animation:in .35s ease}
+.log li time{font-family:var(--mono);color:var(--faint);font-size:12px}
+.log li .ic{width:9px;height:9px;border-radius:50%;background:var(--faint)}
+.log li.run .ic{background:var(--busyfill);box-shadow:0 0 0 4px var(--busybg)}
+.log li.done .ic{background:var(--okfill)}
+.log li.warn .ic{background:var(--warnfill)}
+.log li.run span{color:var(--busy);font-weight:600}
+.log .empty{color:var(--faint);font-size:12.5px}
+@keyframes in{from{opacity:0;transform:translateY(-3px)}}
+.foot{color:var(--faint);font-size:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+
+/* tooltip */
+.tip{position:fixed;z-index:20;max-width:280px;background:var(--fg);color:var(--bg);font-size:12.5px;line-height:1.4;padding:8px 10px;border-radius:8px;pointer-events:none;opacity:0;transition:opacity .12s}
+.tip.on{opacity:1}
+.tip b{display:block;margin-bottom:2px}
+u.g{text-decoration:underline dotted var(--faint);text-underline-offset:3px;cursor:help}
+
+@media (max-width:1100px){
+  .cols{grid-template-columns:1fr}
+  .tiles{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .flow{grid-template-columns:minmax(0,1.4fr) 18px minmax(0,1fr) 18px minmax(0,1fr) 18px minmax(0,1fr) 18px minmax(0,1fr)}
+}
+@media (max-width:640px){
+  .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .flow{display:flex;flex-direction:column;align-items:stretch;gap:6px}
+  .flow .wire,.flow .arrow{display:none}
+  .legend{display:none}
+  .caption{font-size:12px;white-space:normal}
+  .pred{grid-template-columns:1fr}
+  .row{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 70px}
+  #floor{height:auto;margin-top:28px}
+  .caption{position:static;transform:none;margin:0 12px 12px;border-radius:12px;max-width:none}
+  .models{grid-template-columns:1fr}
+  .smap{max-width:240px}
+}
+@media (prefers-reduced-motion:reduce){.wire.on::after{animation:none}.views>section{animation:none}.log li{animation:none}}
+</style>
+
+<div class="app">
+  <header class="bar">
+    <div class="brand"><h1>Smart Pin Care</h1><span>Probe card maintenance on an HBM test floor</span></div>
+    <div class="seg" role="group" aria-label="Scenario">
+      <button id="sc-inplace" data-sc="inplace">Clean in place</button>
+      <button id="sc-offline" data-sc="offline">Clean offline</button>
+      <button id="sc-swap" data-sc="swap">Swap with spare</button>
+    </div>
+    <div class="tr">
+      <button id="prev" aria-label="Previous step"><svg viewBox="0 0 16 16"><path d="M3 2h2v12H3zM14 2v12L6 8z"/></svg></button>
+      <button id="play" aria-label="Pause"><svg viewBox="0 0 16 16"><path id="playIcon" d="M3 2h3.5v12H3zM9.5 2H13v12H9.5z"/></svg></button>
+      <button id="next" aria-label="Next step"><svg viewBox="0 0 16 16"><path d="M11 2h2v12h-2zM2 2v12l8-6z"/></svg></button>
+      <div class="steps" id="steps"></div>
+    </div>
+  </header>
+
+  <section class="panel floor" aria-label="Live test floor">
+    <div class="eyebrow">Live floor</div>
+    <div class="legend"><span><i class="dot d-ok"></i>OK</span><span><i class="dot d-warn"></i>Needs action</span><span><i class="dot d-busy"></i>In progress</span></div>
+    <svg id="floor" viewBox="0 0 1800 700" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Isometric view of the test floor"></svg>
+    <div class="caption" aria-live="polite"><span class="k" id="capK">1 / 6</span><b id="capT"></b></div>
+  </section>
+
+  <section class="panel twin" aria-label="Digital twin">
+    <div class="twin-h">
+      <div class="eyebrow">Digital twin</div>
+      <div class="crumb" id="crumb"></div>
+    </div>
+    <div class="views">
+      <section id="vOverview" class="ov">
+        <div>
+          <div class="colh">Probe cards on the floor</div>
+          <div class="tiles" id="tiles"></div>
+        </div>
+        <div>
+          <div class="colh">How the data flows</div>
+          <div class="flow" id="flow"></div>
+        </div>
+      </section>
+      <section id="vDetail" aria-hidden="true">
+        <div class="cols">
+          <div class="col">
+            <div class="colt"><b>Sense</b><span>What we measure</span></div>
+            <div class="box"><h3>Already logged by tester and prober <span class="ref">[8]</span></h3>
+              <div class="rows" id="logged"></div>
+            </div>
+            <div class="box"><h3>Added sensors on the card <span class="ref">[9]</span></h3>
+              <div class="rows" id="added"></div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="colt"><b>Predict</b><span>What the AI concludes</span></div>
+            <div class="pred">
+              <div class="box"><h3>Needle map <small>1 dot = 1 needle</small></h3><svg class="nmap" id="nmap" viewBox="0 0 250 130"></svg></div>
+              <div class="box"><h3>Needle or prober? <span class="ref">[12]</span></h3><svg class="smap" id="smap" viewBox="0 0 150 112"></svg>
+                <div class="verdict" id="verdict"></div></div>
+            </div>
+            <div class="box"><h3>AI models</h3><div class="models" id="models"></div></div>
+          </div>
+          <div class="col">
+            <div class="colt"><b>Act</b><span>What happens next</span></div>
+            <div class="box dec"><h3>Decision</h3>
+              <div class="big"><span class="n" id="hNum">88</span><small>/ 100 <u class="g" data-tip="health">health</u></small></div>
+              <div class="band"><i class="mk" id="mk"></i><div class="segs" id="segs"></div></div>
+              <div class="why" id="why"></div>
+            </div>
+            <div class="box"><h3>Event log</h3><ul class="log" id="log"></ul></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </section>
+  <div class="foot"><span>Simulated data for illustration. Numbers in [ ] refer to the report's references.</span><span>Hover any dotted term or floor label for a plain explanation.</span></div>
+</div>
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script>
+(()=>{
+/* ---------- glossary ---------- */
+const GL={
+  card:["Probe card","A board of tiny needles that touch every chip on the wafer to test it."],
+  prober:["Prober","Holds the wafer and presses it against the probe card's needles."],
+  tester:["Tester","Sends signals through the needles and decides whether each chip passes."],
+  head:["Test head","Sits on the prober and links the tester to the probe card."],
+  port:["Probe card port","The slot where a probe card is loaded into or taken out of the prober."],
+  stocker:["Spare-card stocker","A cabinet of clean, ready-to-use probe cards."],
+  cell:["Cleaning + vision cell","Cleans a card offline, then a camera checks every needle."],
+  robot:["Robot","A self-driving cart with an arm and a two-slot tray for carrying probe cards."],
+  control:["Control station","One screen and one server. All software runs here: AI models, digital twin and factory system."],
+  cres:["CRES (contact resistance)","How well a needle touches the chip. Low is good. Above about 1 Ω, good chips start to fail."],
+  td:["Touchdown","One press of the needles onto the wafer."],
+  yield:["Wafer yield","Share of chips that pass. Dirty needles make good chips fail, so yield drops."],
+  chuck:["Chuck temperature","Temperature of the wafer during the test."],
+  vib:["Vibration","Shows each touchdown and early cracks."],
+  sound:["Sound","Cracks and loose screws change the sound of a touchdown."],
+  ctemp:["Card temperature","Heat makes the card expand, which can push needles out of line."],
+  ot:["Overtravel","How far the wafer is pushed past first contact, in micrometres."],
+  health:["Health index","One score from 0 to 100 that combines every model's output for the card."],
+  rf:["Random forest","Many simple decision trees vote on whether a reading looks abnormal."],
+  var:["Time-series model (VAR)","Predicts the next readings from the recent pattern of several signals together."],
+  pinn:["Physics-informed neural network","A neural network that also follows the known physics of needle wear, so it works with little failure data."],
+  hi:["Health index","Combines all model outputs into one score per card."],
+  adapter:["Adapter","Translates one vendor's machine data into the shared format."],
+  model:["Shared data model","One common format, so machines from different vendors can be read together."],
+  sites:["Needle or prober?","Each square is one test site on the card. One hot spot means a bad needle. A smooth slope across the card means the prober is tilted."]
+};
+const tip=document.getElementById('tip');
+function showTip(e){const t=e.target.closest('[data-tip]');if(!t){tip.classList.remove('on');return}
+  const g=GL[t.dataset.tip];if(!g)return;tip.innerHTML=`<b>${g[0]}</b>${g[1]}`;tip.classList.add('on');
+  const x=Math.min(e.clientX+14,innerWidth-296),y=Math.min(e.clientY+16,innerHeight-90);tip.style.left=x+'px';tip.style.top=y+'px';}
+document.addEventListener('mousemove',showTip);
+document.addEventListener('focusin',e=>{const t=e.target.closest('[data-tip]');if(t){const r=t.getBoundingClientRect();showTip({target:t,clientX:r.left,clientY:r.bottom})}});
+document.addEventListener('focusout',()=>tip.classList.remove('on'));
+
+/* ---------- iso helpers ---------- */
+const NS='http://www.w3.org/2000/svg';
+const S=30,AX=.985,AY=.174,BX=-.42,BY=.42,OX=0,OY=0;
+const P=(x,y,z=0)=>[OX+(x*AX+y*BX)*S,OY+(x*AY+y*BY-z)*S];
+const D=(x,y,z=0)=>[(x*AX+y*BX)*S,(x*AY+y*BY-z)*S]; // delta from origin
+const svg=document.getElementById('floor');
+function el(tag,attrs={},parent){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);(parent||svg).appendChild(e);return e}
+const pts=(a,fn=P)=>a.map(p=>fn(...p).map(v=>v.toFixed(1)).join(',')).join(' ');
+const STK='rgba(18,26,36,.55)';
+function poly(g,a,fill,o={}){return el('polygon',{points:pts(a,o.rel?D:P),fill,stroke:o.stroke||STK,'stroke-width':o.sw||1,'stroke-linejoin':'round',...(o.attrs||{})},g)}
+function line(g,a,stroke,sw=1.5,o={}){return el('polyline',{points:pts(a,o.rel?D:P),fill:'none',stroke,'stroke-width':sw,'stroke-linecap':'round','stroke-linejoin':'round',...(o.attrs||{})},g)}
+function box(g,x,y,z,w,d,h,c,o={}){
+  if(!o.noShadow&&z===0) poly(g,[[x+.25,y+.3,0],[x+w+.45,y+.3,0],[x+w+.45,y+d+.5,0],[x+.25,y+d+.5,0]],'rgba(15,23,42,.10)',{stroke:'none',rel:o.rel});
+  poly(g,[[x,y+d,z],[x+w,y+d,z],[x+w,y+d,z+h],[x,y+d,z+h]],c[1],o);
+  poly(g,[[x+w,y,z],[x+w,y+d,z],[x+w,y+d,z+h],[x+w,y,z+h]],c[2],o);
+  poly(g,[[x,y,z+h],[x+w,y,z+h],[x+w,y+d,z+h],[x,y+d,z+h]],c[0],o);
+}
+const fr=(g,x,Y,z,w,h,fill,o={})=>poly(g,[[x,Y,z],[x+w,Y,z],[x+w,Y,z+h],[x,Y,z+h]],fill,o); // rect on plane y=Y
+const sr=(g,X,y,z,d,h,fill,o={})=>poly(g,[[X,y,z],[X,y+d,z],[X,y+d,z+h],[X,y,z+h]],fill,o); // rect on plane x=X
+function circ(cx,cy,z,r,n=36){const a=[];for(let i=0;i<n;i++){const t=i/n*2*Math.PI;a.push([cx+r*Math.cos(t),cy+r*Math.sin(t),z])}return a}
+
+/* ---------- palette ---------- */
+const COL={
+  slate:['#64748b','#3f4b5c','#334050'], prober:['#f5f5f2','#e3e5e0','#d2d5cf'], head:['#8e9aab','#6f7c8e','#5e6a7c'],
+  steel:['#e3e7ec','#c8ced6','#b4bcc6'], white:['#fbfbf9','#ebece8','#dcded9'], desk:['#d9d4cb','#c5bfb4','#b2ab9f'],
+  server:['#3a4452','#262e39','#1e252e'], glass:'#1d2834', floor:'#dfe4e9', tile:'rgba(30,41,59,.06)', aisle:'#e7b416'
+};
+const LIGHT={ok:['#22c55e','#bbf7d0'],warn:['#f59e0b','#fde68a'],busy:['#3b82f6','#bfdbfe'],idle:['#94a3b8','#e2e8f0']};
+
+/* ---------- geometry constants ---------- */
+const CELLX=[15.5,24,32.5];
+const PORT=i=>[CELLX[i-1]+5.5,6.3,1.95];
+const STOCK=k=>[3,6.3,.75+k*1.05];
+const CELLPOS=[10.25,6.3,2.0];
+const HOME=13.4, RY=7.1;
+const SLOT=(rx,s)=>[rx+(s==='A'?.8:1.8),RY+1.0,1.05];
+const dockA=x=>x-.8, dockB=x=>x-1.8;
+
+/* ---------- build static floor ---------- */
+const gFloor=el('g'),gBack=el('g'),gRobot=el('g'),gCards=el('g'),gFront=el('g'),gLab=el('g'),gTags=el('g');
+// floor slab and tiles
+poly(gFloor,[[-6,0,0],[41,0,0],[41,12.5,0],[-6,12.5,0]],COL.floor,{stroke:'rgba(18,26,36,.35)'});
+poly(gFloor,[[41,0,0],[41,12.5,0],[41,12.5,-.5],[41,0,-.5]],'#c9d0d7',{stroke:'rgba(18,26,36,.35)'});
+poly(gFloor,[[-6,12.5,0],[41,12.5,0],[41,12.5,-.5],[-6,12.5,-.5]],'#d3d9df',{stroke:'rgba(18,26,36,.35)'});
+for(let x=-4;x<41;x+=2)line(gFloor,[[x,0,0],[x,12.5,0]],COL.tile,1);
+for(let y=2;y<12.5;y+=2)line(gFloor,[[-6,y,0],[41,y,0]],COL.tile,1);
+line(gFloor,[[-5.6,6.6,0],[40.6,6.6,0]],COL.aisle,2.4);
+line(gFloor,[[-5.6,10.4,0],[40.6,10.4,0]],COL.aisle,2.4);
+line(gFloor,[[1.5,8.6,0],[39.5,8.6,0]],'rgba(30,41,59,.18)',2,{attrs:{'stroke-dasharray':'2 8'}});
+
+// control station (back-left, next to the stocker)
+box(gBack,-5.2,2,0,3.9,3.4,2.5,COL.desk);
+line(gBack,[[-3.25,3.6,2.5],[-3.25,3.6,2.8]],'#374151',4);
+fr(gBack,-4.85,3.7,2.8,3.2,1.9,'#111827',{stroke:'#0b0f16'});
+const monDots=[];for(let i=0;i<7;i++){const xx=-4.5+(i%4)*.72,zz=4.15-Math.floor(i/4)*.8;const [cx,cy]=P(xx,3.7,zz);monDots.push(el('rect',{x:cx-7,y:cy-6,width:15,height:11,rx:2,fill:'#22c55e'},gBack));}
+box(gBack,-1,1.5,0,1.6,3,4.2,COL.server);
+for(let k=0;k<4;k++){fr(gBack,-.88,4.5,.5+k*.88,1.36,.5,'#323c4a',{stroke:'#11161d'});const [lx,ly]=P(.35,4.5,.75+k*.88);el('circle',{cx:lx,cy:ly,r:2.2,fill:'#34d399'},gBack);}
+
+// stocker
+box(gBack,1,1.5,0,4,4.5,6,COL.steel);
+fr(gBack,1.3,6,.35,3.4,5.4,'#dfe9ef',{stroke:'rgba(18,26,36,.35)'});
+const stockBars=[];
+for(let k=0;k<5;k++){const z=.55+k*1.05;
+  line(gBack,[[1.3,6,z-.12],[4.7,6,z-.12]],'rgba(18,26,36,.35)',1);
+  const b=el('g',{},gBack);fr(b,1.7,6,z,2.6,.32,'#2f7d4f',{stroke:'#1d4d31'});line(b,[[1.7,6,z+.32],[4.3,6,z+.32]],'#c9cfd5',1.6);
+  stockBars.push(b);}
+fr(gBack,1.3,6,5.85,3.4,.1,'#9aa3ad',{stroke:'none'});
+
+// cleaning + vision cell
+box(gBack,7,1.5,0,6.5,4.5,4.2,COL.white);
+fr(gBack,7,6,3.55,6.5,.35,'#0f766e',{stroke:'none'});
+fr(gBack,8.5,6,1.25,3.5,2.05,COL.glass);
+fr(gBack,8.9,6,1.4,2.7,.25,'#475569',{stroke:'none'}); // platform
+const cellGlow=fr(gBack,8.5,6,1.25,3.5,2.05,'rgba(59,130,246,.35)',{stroke:'none'});
+const scanLine=fr(gBack,8.6,6,1.3,.09,1.95,'#60a5fa',{stroke:'none'});
+line(gBack,[[12.8,3.75,4.2],[12.8,3.75,6.0],[10.25,3.75,6.0]],'#4b5563',3);
+box(gBack,9.7,3.25,5.05,1.1,1,.85,['#e5e7eb','#9ca3af','#7c848f'],{noShadow:true});
+const camLens=el('ellipse',{cx:P(10.25,4.25,5.4)[0],cy:P(10.25,4.25,5.4)[1],rx:4,ry:3,fill:'#334155'},gBack);
+const camBeam=el('polygon',{points:pts([[10.25,4.25,5.05],[9.2,6,3.2],[11.3,6,3.2]]),fill:'rgba(96,165,250,.18)',stroke:'none'},gBack);
+// cell status light
+const towers={};
+function tower(g,x,y,z,key){const segs={};
+  line(g,[[x,y,z],[x,y,z+.55]],'#6b7280',2);
+  ['ok','warn','busy'].forEach((s,i)=>{const zz=z+.55+i*.38;const sg=el('g',{},g);
+    poly(sg,[[x-.17,y+.17,zz],[x+.17,y+.17,zz],[x+.17,y+.17,zz+.34],[x-.17,y+.17,zz+.34]],LIGHT[s][1],{stroke:'rgba(18,26,36,.4)'});
+    poly(sg,[[x+.17,y-.17,zz],[x+.17,y+.17,zz],[x+.17,y+.17,zz+.34],[x+.17,y-.17,zz+.34]],LIGHT[s][1],{stroke:'rgba(18,26,36,.4)'});
+    segs[s]=sg;});
+  const [gx,gy]=P(x,y,z+1.2);const glow=el('circle',{cx:gx,cy:gy,r:16,fill:'none',opacity:0},g);
+  towers[key]={segs,glow,x,y,z};}
+tower(gBack,13.1,1.9,4.2,'cell');
+
+// test cells
+const chucks={},prober={};
+CELLX.forEach((x0,i)=>{const n=i+1;
+  box(gBack,x0,1.5,0,2.6,4.5,5.2,COL.slate);
+  fr(gBack,x0+.35,6,3.4,1.9,1.15,'#0b2230',{stroke:'#0b1620'});
+  for(let k=0;k<4;k++)line(gBack,[[x0+.6+k*.14,6,3.6+k*.24],[x0+1.7,6,3.6+k*.24]],'#2dd4bf',1,{attrs:{opacity:.55}});
+  for(let k=0;k<5;k++)line(gBack,[[x0+.4,6,.5+k*.35],[x0+2.2,6,.5+k*.35]],'rgba(0,0,0,.35)',1);
+  box(gBack,x0+3.2,1.5,0,4.6,4.5,3.8,COL.prober);
+  fr(gBack,x0+3.2,6,0,4.6,.45,'#c4c8c1',{stroke:STK});
+  fr(gBack,x0+3.6,6,2.5,3.8,1.0,COL.glass);
+  fr(gBack,x0+6.25,6,2.6,.95,.22,'#94a3b8',{stroke:'none'}); // cleaning pad
+  for(let k=0;k<4;k++)line(gBack,[[x0+6.3+k*.22,6,2.62],[x0+6.42+k*.22,6,2.8]],'#cbd5e1',1);
+  const wg=fr(gBack,x0+3.6,6,2.5,3.8,1.0,'rgba(59,130,246,.45)',{stroke:'none'});wg.setAttribute('opacity',0);
+  const ch=el('g',{},gBack);fr(ch,x0+3.9,6,2.6,1.5,.32,'#e2e8f0',{stroke:'#475569'});chucks[n]={g:ch,x0,wg};
+  fr(gBack,x0+4.2,6,1.7,2.6,.45,'#252d38');
+  box(gBack,x0+3.6,2,3.8,3.8,3.5,1.3,COL.head,{noShadow:true});
+  const [ax,ay]=P(x0+2.6,3.75,4.9),[bx,by]=P(x0+3.6,3.75,4.6);
+  el('path',{d:`M${ax},${ay} C${ax+12},${ay-26} ${bx-6},${by-26} ${bx},${by}`,fill:'none',stroke:'#1f2937','stroke-width':4,'stroke-linecap':'round'},gBack);
+  tower(gBack,x0+7.55,1.75,3.8,'p'+n);
+  const [tx,ty]=P(x0+5.5,3.75,5.1);
+  const pg=el('g',{transform:`translate(${tx},${ty-22})`},gBack);
+  const pr=el('rect',{x:-34,y:-12,width:68,height:22,rx:11,fill:'#ffffff',stroke:'rgba(18,26,36,.25)'},pg);
+  const pt=el('text',{x:0,y:4,'text-anchor':'middle',class:'tag',fill:'#0f1720'},pg);pt.textContent='Prober '+n;
+  prober[n]={rect:pr,text:pt};
+});
+
+// robot (built at origin, moved by transform)
+const robotG=el('g',{},gRobot);
+(function(){const o={rel:true,noShadow:true};
+  poly(robotG,[[.2,.3,0],[3.1,.3,0],[3.1,2.4,0],[.2,2.4,0]],'rgba(15,23,42,.14)',{rel:true,stroke:'none'});
+  box(robotG,0,0,0,2.8,2,.95,['#fafaf8','#e9eae6','#d9dbd6'],o);
+  poly(robotG,[[0,2,.45],[2.8,2,.45],[2.8,2,.62],[0,2,.62]],'#f26b1d',{rel:true,stroke:'none'});
+  poly(robotG,[[2.8,0,.45],[2.8,2,.45],[2.8,2,.62],[2.8,0,.62]],'#e85d10',{rel:true,stroke:'none'});
+  poly(robotG,[[.25,2,.02],[.75,2,.02],[.75,2,.28],[.25,2,.28]],'#1f2937',{rel:true,stroke:'none'});
+  poly(robotG,[[2.05,2,.02],[2.55,2,.02],[2.55,2,.28],[2.05,2,.28]],'#1f2937',{rel:true,stroke:'none'});
+  ['A','B'].forEach(s=>{const c=s==='A'?.8:1.8;poly(robotG,circ(c,1.0,.951,.68),'#d6d8d3',{rel:true,stroke:'rgba(18,26,36,.35)'})});
+  poly(robotG,circ(2.45,.35,.95,.22),'#1f2937',{rel:true,stroke:'none'});
+  poly(robotG,circ(2.45,.35,1.12,.22),'#374151',{rel:true,stroke:'none'});
+  line(robotG,[[2.5,1.6,.95],[2.5,1.6,2.1],[2.5,.4,2.4]],'#6b7280',4,{rel:true});
+  line(robotG,[[2.5,.4,2.4],[2.5,.1,2.15]],'#374151',3,{rel:true});
+})();
+const robotTag=el('g',{},gTags);
+el('rect',{x:0,y:-11,width:52,height:21,rx:10.5,fill:'#f26b1d'},robotTag);
+const rtt=el('text',{x:26,y:4,'text-anchor':'middle',class:'tag',fill:'#fff'},robotTag);rtt.textContent='Robot';
+robotTag.setAttribute('data-tip','robot');
+
+// cards
+const CARD_IDS=[1,2,3,4,5,6,7];
+const cardG={},cardTag={};
+CARD_IDS.forEach(id=>{const g=el('g',{},gCards);const o={rel:true,stroke:'#174d2f'};
+  poly(g,circ(0,0,0,.6),'#1d5a37',o);poly(g,circ(0,0,.13,.6),'#c3cad1',{rel:true,stroke:'#8a949e'});
+  poly(g,circ(0,0,.14,.46),'#2f855a',{rel:true,stroke:'none'});
+  poly(g,[[-.18,-.18,.15],[.18,-.18,.15],[.18,.18,.15],[-.18,.18,.15]],'#b7791f',{rel:true,stroke:'none'});
+  cardG[id]=g;g.setAttribute('data-tip','card');
+  const t=el('g',{},gTags);el('rect',{x:-29,y:-10,width:58,height:19,rx:9.5,fill:'#0f1720'},t);
+  const tt=el('text',{x:0,y:4,'text-anchor':'middle',class:'tag',fill:'#fff'},t);tt.textContent='Card '+id;
+  cardTag[id]=t;});
+
+// static labels (placed around the scene's bounding box)
+const sceneBB=(()=>{const b1=gFloor.getBBox(),b2=gBack.getBBox(),b3=gFront.getBBox();const x=Math.min(b1.x,b2.x,b3.x),y=Math.min(b1.y,b2.y,b3.y);return{x,y,x2:Math.max(b1.x+b1.width,b2.x+b2.width,b3.x+b3.width),y2:Math.max(b1.y+b1.height,b2.y+b2.height,b3.y+b3.height)}})();
+function lab(text,p,side,tipKey,off=0){const [ax,ay]=P(...p);const g=el('g',{'data-tip':tipKey},gLab);let tx,ty,anchor;
+  if(side==='top'){tx=ax+off;ty=sceneBB.y-34;anchor='middle';el('polyline',{points:`${ax},${ay} ${ax},${ty+18} ${tx},${ty+18}`,fill:'none',class:'lead'},g)}
+  else if(side==='left'){tx=sceneBB.x-26;ty=ay+off;anchor='end';el('polyline',{points:`${ax},${ay} ${tx+60},${ty} ${tx},${ty}`,fill:'none',class:'lead'},g)}
+  else{tx=sceneBB.x2+26;ty=ay+off;anchor='start';el('polyline',{points:`${ax},${ay} ${tx-40},${ty} ${tx},${ty}`,fill:'none',class:'lead'},g)}
+  el('circle',{cx:ax,cy:ay,r:3.5,class:'leadDot'},g);
+  const t=el('text',{x:side==='left'?tx-6:side==='right'?tx+6:tx,y:side==='top'?ty+4:ty+6,'text-anchor':anchor,class:'lbl'},g);t.textContent=text;
+  const bb=t.getBBox();el('rect',{x:bb.x-4,y:bb.y-3,width:bb.width+8,height:bb.height+6,fill:'transparent'},g);}
+lab('Spare-card stocker',[3,6,5.9],'top','stocker',0);
+lab('Cleaning + vision cell',[11.5,3.75,6.0],'top','cell',-10);
+lab('Tester',[16.8,3.75,5.2],'top','tester',22);
+lab('Test head',[20.5,3.75,5.1],'top','head',30);
+lab('Prober',[40.3,3,2.6],'right','prober',-40);
+lab('Probe card port',[38.4,6,1.9],'right','port',10);
+lab('Control station',[-3.25,3.7,3.6],'top','control',0);
+{const bb=svg.getBBox();svg.setAttribute('viewBox',`${(bb.x-20).toFixed(0)} ${(bb.y-14).toFixed(0)} ${(bb.width+40).toFixed(0)} ${(bb.height+78).toFixed(0)}`);}
+
+/* ---------- scenario data ---------- */
+const BASEH={1:98,2:95,3:91,4:100,5:90,6:97,7:88};
+const TD0={1:12040,2:30510,3:27880,4:8120,5:19650,6:22900,7:41200};
+const SC={
+  inplace:{label:'Clean in place',card:3,prober:1,needle:112,peak:.86,health:62,left:'≈9 wafers',dec:2,
+    why:'50–69: light build-up. The prober cleans the needles on its own pad, with no robot needed.'},
+  offline:{label:'Clean offline',card:5,prober:3,needle:47,peak:.97,health:44,left:'≈6 wafers',dec:1,
+    why:'30–49: needs a deep clean. The robot takes the card to the cleaning cell between lots.'},
+  swap:{label:'Swap with spare',card:7,prober:2,needle:279,peak:1.18,health:28,left:'≈4 wafers',dec:0,
+    why:'Below 30: swap now so testing continues. The worn card is cleaned offline afterwards.'}
+};
+const DECS=[['Swap with spare','0–29'],['Clean offline','30–49'],['Clean in place','50–69'],['Keep testing','70–100']];
+
+/* ---------- timeline helpers ---------- */
+const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+const seg=(p,a,b)=>clamp((p-a)/(b-a));
+const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+const lerp=(a,b,t)=>a+(b-a)*t;
+const lerp3=(a,b,t)=>[lerp(a[0],b[0],t),lerp(a[1],b[1],t),lerp(a[2],b[2],t)];
+const decIdx=h=>h<30?0:h<50?1:h<70?2:3;
+
+function baseState(){
+  const st={robot:HOME,robotMoving:false,cards:{},towers:{p1:'ok',p2:'ok',p3:'ok',cell:'ok'},chuck:{1:0,2:0,3:0},
+    cellGlow:0,scan:null,cam:false,view:'overview',focus:null,log:[],flow:{tester:0,prober:0,robot:0,cell:0},
+    tw:{rise:0,fixed:0,models:{detect:'idle',forecast:'idle',fill:'idle',combine:'idle'},needle:'normal',sites:0,verdict:false,decided:false,resolved:false,sweep:null}};
+  const loc={1:['stock',0],2:['stock',1],4:['stock',2],6:['stock',3],3:['p1'],7:['p2'],5:['p3']};
+  for(const id of CARD_IDS){const [l,s]=loc[id];st.cards[id]={loc:l,slot:s,pos:null,health:BASEH[id],status:l==='stock'?'spare':'ok'}}
+  return st;
+}
+function mvRobot(st,a,b,q){if(q>0&&q<1)st.robotMoving=true;st.robot=lerp(a,b,ease(q));}
+function mvCard(st,id,a,b,q,endLoc,endSlot){const c=st.cards[id];if(q<=0)return;if(q>=1){c.loc=endLoc;c.slot=endSlot;c.pos=null;return}c.loc='moving';c.pos=lerp3(a,b,ease(q));}
+function slotPos(st,s){return SLOT(st.robot,s)}
+
+function commonSteps(sc){const c=sc.card,pr=sc.prober,n=sc.needle;return [
+ {cap:'All probe cards are testing normally',dur:3.2,f:(st,p,L)=>{}},
+ {cap:`Needle ${n} on Card ${c} starts to drift`,dur:4.5,f:(st,p,L)=>{
+   st.tw.rise=ease(seg(p,0,.8));st.flow.tester=st.flow.prober=1;
+   if(p>.25){st.cards[c].status='warn';st.towers['p'+pr]='warn'}
+   if(p>.4){st.view='detail';st.focus=c}
+   st.tw.models.detect=p<.55?'idle':p<.8?'run':'done';
+   if(p>.55)st.tw.needle='flag';
+   L(.8,`Needle ${n} drifting`,'warn');}},
+ {cap:`The AI predicts failure in ${sc.left}`,dur:4.5,f:(st,p,L)=>{
+   const m=st.tw.models;m.forecast=p<.05?'idle':p<.35?'run':'done';m.fill=p<.25?'idle':p<.55?'run':'done';m.combine=p<.5?'idle':p<.8?'run':'done';
+   st.cards[c].health=Math.round(lerp(BASEH[c],sc.health,ease(seg(p,.5,.85))));
+   L(.35,`Forecast: fails in ${sc.left}`,'warn');L(.85,`Health ${sc.health} / 100`,'warn');}},
+ {cap:'Is it the needle, or is the prober tilted?',dur:4,f:(st,p,L)=>{
+   st.tw.sites=ease(seg(p,0,.55));st.tw.verdict=p>.6;st.tw.decided=p>.78;
+   L(.62,'Cause: the needle, not prober tilt','warn');L(.82,`Decision: ${DECS[sc.dec][0].toLowerCase()}`,'warn');}}
+];}
+
+function cleanInCell(st,p,L,id,fromX){ // robot at fromX with card in slot A -> cell, clean, scan
+  mvRobot(st,fromX,dockA(CELLPOS[0]),seg(p,0,.3));
+  if(p>=.32){mvCard(st,id,SLOT(st.robot,'A'),CELLPOS,seg(p,.32,.45),'cell')}
+  st.flow.robot=(p>0&&p<.3)?1:0;
+  if(p>.45){st.towers.cell='busy';st.flow.cell=1;st.cards[id].status='busy'}
+  st.cellGlow=p>.45&&p<.66?(.5+.5*Math.sin(p*90)):0;
+  if(p>.66&&p<1){st.scan=seg(p,.66,.97);st.cam=true;st.tw.sweep=st.scan}
+  if(p>=.97){st.tw.sweep=1;st.tw.needle='ok';st.cards[id].health=97;st.towers.cell='ok';st.tw.resolved=true;st.tw.fixed=1}
+  L(0,'Robot heading to the cleaning cell','done',.3);
+  L(.45,`Card ${id} cleaned`,'run',.66,`Cleaning Card ${id}…`);
+  L(.66,'Vision check: 288 of 288 needles pass','run',.97,'Vision check running…');
+}
+
+const STEPS={
+ inplace:sc=>[...commonSteps(sc),
+  {cap:'Prober 1 cleans the needles on its own cleaning pad',dur:6,f:(st,p,L)=>{
+    st.chuck[1]=p;st.towers.p1=p<.96?'busy':'ok';st.cards[3].status=p<.96?'busy':'warn';
+    L(0,'Clean in place done','run',.96,'Cleaning in place…');}},
+  {cap:'Testing resumes. Resistance is back to normal',dur:6,f:(st,p,L)=>{
+    st.tw.fixed=ease(seg(p,0,.5));st.cards[3].health=Math.round(lerp(62,96,ease(seg(p,0,.5))));
+    st.cards[3].status='ok';st.towers.p1='ok';st.tw.needle='ok';st.tw.resolved=p>.3;
+    L(.45,'Resistance back to 0.42 Ω · health 96','done');
+    if(p>.68)st.view='overview';}}],
+ offline:sc=>[...commonSteps(sc),
+  {cap:'Between lots, the robot collects Card 5 from Prober 3',dur:7,f:(st,p,L)=>{
+    mvRobot(st,HOME,dockA(PORT(3)[0]),seg(p,0,.55));st.flow.robot=p<.55?1:0;
+    st.towers.p3=p>.5?'busy':'warn';
+    mvCard(st,5,PORT(3),SLOT(dockA(PORT(3)[0]),'A'),seg(p,.6,.85),'robotA');
+    if(p>.6)st.cards[5].status='busy';
+    L(0,'Robot sent to Prober 3','run',.55);L(.85,'Card 5 on the robot','done');}},
+  {cap:'The cleaning cell cleans Card 5, then a camera checks every needle',dur:9,f:(st,p,L)=>{
+    st.towers.p3='busy';cleanInCell(st,p,L,5,dockA(PORT(3)[0]));}},
+  {cap:'Card 5 goes back into Prober 3 and testing resumes',dur:8,f:(st,p,L)=>{
+    st.towers.p3='busy';st.tw.sweep=1;st.tw.needle='ok';st.cards[5].health=97;
+    mvCard(st,5,CELLPOS,SLOT(dockA(CELLPOS[0]),'A'),seg(p,0,.12),'robotA');
+    mvRobot(st,dockA(CELLPOS[0]),dockA(PORT(3)[0]),seg(p,.14,.5));
+    if(p>=.52)mvCard(st,5,SLOT(dockA(PORT(3)[0]),'A'),PORT(3),seg(p,.52,.68),'p3');
+    if(p>.7){st.towers.p3='ok';st.cards[5].status='ok';st.tw.fixed=ease(seg(p,.7,.9));st.tw.resolved=true}
+    if(p>.72)mvRobot(st,dockA(PORT(3)[0]),HOME,seg(p,.72,1));
+    st.flow.robot=(p>.14&&p<.5)||(p>.72&&p<1)?1:0;
+    L(.68,'Card 5 back in Prober 3 · testing resumes','done');
+    if(p>.78)st.view='overview';}}],
+ swap:sc=>[...commonSteps(sc),
+  {cap:'The robot picks spare Card 4 from the stocker',dur:7,f:(st,p,L)=>{
+    mvRobot(st,HOME,dockB(STOCK(2)[0]),seg(p,0,.5));st.flow.robot=p<.5?1:0;
+    mvCard(st,4,STOCK(2),SLOT(dockB(STOCK(2)[0]),'B'),seg(p,.55,.85),'robotB');
+    if(p>.55)st.cards[4].status='busy';
+    L(0,'Robot sent to the stocker','run',.5);L(.85,'Spare Card 4 picked','done');}},
+  {cap:'At Prober 2, worn Card 7 comes out and spare Card 4 goes in',dur:8.5,f:(st,p,L)=>{
+    const a=dockA(PORT(2)[0]),b=dockB(PORT(2)[0]);
+    mvRobot(st,dockB(STOCK(2)[0]),a,seg(p,0,.38));
+    if(p>=.6)mvRobot(st,a,b,seg(p,.6,.68));
+    st.flow.robot=p<.38||(p>.6&&p<.68)?1:0;
+    if(p>.38&&p<.9)st.towers.p2='busy';
+    if(p>=.4)mvCard(st,7,PORT(2),SLOT(a,'A'),seg(p,.4,.55),'robotA');
+    if(p>.4)st.cards[7].status='busy';
+    if(p>=.7)mvCard(st,4,SLOT(b,'B'),PORT(2),seg(p,.7,.86),'p2');
+    if(p>=.9){st.towers.p2='ok';st.cards[4].status='ok'}
+    L(.55,'Card 7 out of Prober 2','done');L(.88,'Card 4 in · Prober 2 testing again','done');}},
+  {cap:'The cleaning cell cleans worn Card 7, then a camera checks every needle',dur:9,f:(st,p,L)=>{
+    cleanInCell(st,p,L,7,dockB(PORT(2)[0]));if(p>=.97)st.tw.fixed=1;}},
+  {cap:'Card 7 is clean and stored as a spare',dur:8,f:(st,p,L)=>{
+    st.tw.sweep=1;st.tw.needle='ok';st.tw.fixed=1;st.cards[7].health=97;
+    mvCard(st,7,CELLPOS,SLOT(dockA(CELLPOS[0]),'A'),seg(p,0,.12),'robotA');
+    mvRobot(st,dockA(CELLPOS[0]),dockA(STOCK(2)[0]),seg(p,.14,.5));
+    if(p>=.52)mvCard(st,7,SLOT(dockA(STOCK(2)[0]),'A'),STOCK(2),seg(p,.52,.68),'stock',2);
+    if(p>.68){st.cards[7].status='spare';st.tw.resolved=true}
+    if(p>.72)mvRobot(st,dockA(STOCK(2)[0]),HOME,seg(p,.72,1));
+    st.flow.robot=(p>.14&&p<.5)||(p>.72&&p<1)?1:0;
+    L(.68,'Card 7 stored as a spare','done');
+    if(p>.8)st.view='overview';}}]
+};
+
+/* ---------- player ---------- */
+let scKey='swap',steps=[],starts=[],total=0,T=0,playing=true,last=null,manual=null,stopAt=null;
+const HOLD=2.5;
+function load(k){scKey=k;steps=STEPS[k](SC[k]);starts=[];total=0;for(const s of steps){starts.push(total);total+=s.dur}T=0;manual=null;
+  document.querySelectorAll('.seg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.sc===k));
+  const sd=document.getElementById('steps');sd.innerHTML='';steps.forEach((s,i)=>{const d=document.createElement('i');d.title=s.cap;d.onclick=()=>playStep(i);sd.appendChild(d)});
+  tick(true);}
+function clock(sec){const s=Math.round(sec*14);const base=10*3600+2*60;const t=base+s;const h=Math.floor(t/3600),m=Math.floor(t%3600/60),ss=t%60;return `${h}:${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`}
+function compute(t){const st=baseState();let idx=0;
+  for(let i=0;i<steps.length;i++){if(t<starts[i])break;idx=i;const p=i<steps.length-1&&t<starts[i+1]?clamp((t-starts[i])/steps[i].dur):(t>=starts[i]+steps[i].dur?1:clamp((t-starts[i])/steps[i].dur));
+    const L=(at,text,kind,doneAt,runText)=>{if(p>=at){const running=doneAt!=null&&p<doneAt;const st2=running?'run':(kind==='run'?'done':kind);st.log.push({time:clock(starts[i]+at*steps[i].dur),text:running&&runText?runText:text,state:st2})}};
+    st.robotMoving=false;steps[i].f(st,p,L);}
+  st.idx=idx;st.T=t;return st;}
+
+/* ---------- render floor ---------- */
+function setTower(key,state){const tw=towers[key];for(const s of ['ok','warn','busy']){const on=s===state;
+  tw.segs[s].querySelectorAll('polygon').forEach(pg=>pg.setAttribute('fill',on?LIGHT[s][0]:LIGHT[s][1]));tw.segs[s].style.opacity=on?1:.55}
+  tw.glow.setAttribute('fill',state==='ok'?'none':LIGHT[state][0]);tw.glow.setAttribute('opacity',state==='ok'?0:.22);}
+function renderFloor(st){
+  for(const k of ['p1','p2','p3','cell'])setTower(k,st.towers[k]);
+  for(let n=1;n<=3;n++){const pr=prober[n],s=st.towers['p'+n];
+    pr.rect.setAttribute('fill',s==='warn'?'#f59e0b':s==='busy'?'#3b82f6':'#ffffff');pr.rect.setAttribute('stroke',s==='ok'?'rgba(18,26,36,.25)':'none');pr.text.setAttribute('fill',s==='ok'?'#0f1720':'#ffffff');
+    const q=st.chuck[n];let dx=0,dz=0;if(q>0&&q<1){const go=ease(seg(q,0,.18)),back=ease(seg(q,.82,1));dx=(2.35)*(go-back);if(q>.18&&q<.82)dz=.06*Math.sin((q-.18)*60)}
+    const [tx,ty]=D(dx,0,dz);chucks[n].g.setAttribute('transform',`translate(${tx.toFixed(1)},${ty.toFixed(1)})`);chucks[n].wg.setAttribute('opacity',q>0&&q<1?(.45+.35*Math.sin(q*40)).toFixed(2):0);}
+  const [rx,ry]=D(st.robot,RY,0);robotG.setAttribute('transform',`translate(${(rx+OX).toFixed(1)},${(ry+OY).toFixed(1)})`);
+  const [tgx,tgy]=P(st.robot+3.0,RY+1.6,.5);robotTag.setAttribute('transform',`translate(${tgx.toFixed(1)},${tgy.toFixed(1)})`);
+  const occ=new Set();
+  for(const id of CARD_IDS){const c=st.cards[id];let pos=null;
+    if(c.loc==='stock'){occ.add(c.slot)}
+    else if(c.loc==='robotA')pos=SLOT(st.robot,'A');else if(c.loc==='robotB')pos=SLOT(st.robot,'B');
+    else if(c.loc==='cell')pos=CELLPOS;else if(c.loc==='moving')pos=c.pos;
+    const g=cardG[id],t=cardTag[id];
+    if(pos){const [x,y]=P(...pos);g.setAttribute('transform',`translate(${x.toFixed(1)},${y.toFixed(1)})`);g.style.display='';
+      let [a,b]=P(pos[0],pos[1],pos[2]+1.05);if(c.loc==='robotA')a-=26;if(c.loc==='robotB')a+=26;t.setAttribute('transform',`translate(${a.toFixed(1)},${b.toFixed(1)})`);t.style.display='';}
+    else{g.style.display='none';t.style.display='none'}}
+  stockBars.forEach((b,k)=>b.style.display=occ.has(k)?'':'none');
+  cellGlow.setAttribute('opacity',st.cellGlow.toFixed(2));
+  if(st.scan!=null){const x=8.6+st.scan*3.3;scanLine.setAttribute('points',pts([[x,6,1.3],[x+.09,6,1.3],[x+.09,6,3.25],[x,6,3.25]]));scanLine.style.display=''}else scanLine.style.display='none';
+  camBeam.style.display=st.cam?'':'none';camLens.setAttribute('fill',st.cam?'#3b82f6':'#334155');
+  const order=[3,7,5,1,2,4,6];
+  CARD_IDS.forEach((id,i)=>{const s=st.cards[id].status;monDots[i].setAttribute('fill',s==='warn'?'#f59e0b':s==='busy'?'#3b82f6':'#22c55e')});
+}
+
+/* ---------- twin ---------- */
+const $=id=>document.getElementById(id);
+const LOCN={p1:'Prober 1',p2:'Prober 2',p3:'Prober 3',stock:'Stocker',robotA:'On the robot',robotB:'On the robot',moving:'On the robot',cell:'Cleaning cell'};
+function statusOf(c){return c.status==='warn'?['warn','Needs action']:c.status==='busy'?['busy',c.loc==='cell'?'Cleaning':c.loc.startsWith('p')?'Cleaning in place':'Moving']:c.status==='spare'?['ok','Spare, ready']:['ok','Testing']}
+// tiles
+const tilesEl=$('tiles');const tileRefs={};
+CARD_IDS.forEach(id=>{const b=document.createElement('button');b.className='tile';b.innerHTML=`<div class="t1"><span>Card ${id}</span><i class="dot d-ok"></i></div><div class="loc"></div><div class="hr"><span class="hn num"></span><span class="hb"><i></i></span></div><div class="st"></div>`;
+  b.onclick=()=>{manual=id;setPlaying(false);tick(true)};tilesEl.appendChild(b);
+  tileRefs[id]={b,dot:b.querySelector('.dot'),loc:b.querySelector('.loc'),hn:b.querySelector('.hn'),bar:b.querySelector('.hb i'),st:b.querySelector('.st')};});
+// flow
+const MACH=[['tester','Testers ×3','Vendor A','tester'],['prober','Probers ×3','Vendor B','prober'],['robot','Robot','Vendor C','robot'],['cell','Cleaning + vision cell','Vendor D','cell']];
+const flowEl=$('flow');const flowRefs={};
+MACH.forEach(([k,n,v,tk],i)=>{
+  const a=document.createElement('div');a.className='chip';a.style.gridRow=i+1;a.style.gridColumn=1;a.innerHTML=`<b data-tip="${tk}">${n}</b><small>${v}</small>`;flowEl.appendChild(a);
+  const w1=document.createElement('div');w1.className='wire';w1.style.gridRow=i+1;w1.style.gridColumn=2;flowEl.appendChild(w1);
+  const ad=document.createElement('div');ad.className='chip';ad.style.gridRow=i+1;ad.style.gridColumn=3;ad.innerHTML=`<span><u class="g" data-tip="adapter">Adapter</u> ${v.slice(-1)}</span><small><i class="dot d-ok"></i> online</small>`;flowEl.appendChild(ad);
+  const w2=document.createElement('div');w2.className='wire';w2.style.gridRow=i+1;w2.style.gridColumn=4;flowEl.appendChild(w2);
+  flowRefs[k]={a,w1,w2};});
+flowEl.insertAdjacentHTML('beforeend',`
+ <div class="hub" style="grid-column:5"><b data-tip="model"><u class="g" data-tip="model">Shared data model</u></b><small>One format for every vendor</small></div>
+ <div class="arrow" style="grid-column:6"></div>
+ <div class="hub" style="grid-column:7"><b>AI models</b><small>Detect · Forecast · Fill gaps · Combine</small></div>
+ <div class="arrow" style="grid-column:8"></div>
+ <div class="hub" style="grid-column:9"><b>Actions</b><small>Robot jobs, cleaning orders and this screen</small></div>`);
+
+// detail builders
+function rowHTML(id,label,tipKey){return `<div class="row"><span class="l"><u class="g" data-tip="${tipKey}">${label}</u></span><svg class="spark" id="sp-${id}" viewBox="0 0 120 24" preserveAspectRatio="none"></svg><span class="v" id="v-${id}"></span></div>`}
+$('logged').innerHTML=rowHTML('cres','Needle resistance','cres')+rowHTML('td','Touchdowns','td')+rowHTML('yield','Wafer yield','yield')+rowHTML('chuck','Chuck temperature','chuck');
+$('added').innerHTML=rowHTML('vib','Vibration','vib')+rowHTML('snd','Sound','sound')+rowHTML('ct','Card temperature','ctemp')+rowHTML('ot','Overtravel','ot');
+const MOD=[['detect','Detect','rf','Random forest','[8]','Is a needle drifting?'],['forecast','Forecast','var','Time-series model (VAR)','[7]','How long until it fails?'],
+  ['fill','Fill gaps','pinn','Physics-informed network','[11]','Too few failures to learn from?'],['combine','Combine','hi','Health index','[20]','One score for the card']];
+$('models').innerHTML=MOD.map(([k,j,tk,n,r,q])=>`<div class="m" id="m-${k}"><div class="mh"><span class="job">${j}</span><span class="out" id="o-${k}">waiting</span></div><div class="mn"><u class="g" data-tip="${tk}">${n}</u> <span class="ref">${r}</span></div><small>${q}</small></div>`).join('');
+$('segs').innerHTML=DECS.map(([n,r],i)=>`<div id="dg-${i}"><b>${r}</b>${n}</div>`).join('');
+// needle map
+const nm=$('nmap');const ndots=[];
+for(let r=0;r<12;r++)for(let c=0;c<24;c++){const d=document.createElementNS(NS,'circle');d.setAttribute('cx',8+c*10.2);d.setAttribute('cy',8+r*10);d.setAttribute('r',3.1);nm.appendChild(d);ndots.push(d)}
+const nring=document.createElementNS(NS,'circle');nring.setAttribute('r',7);nring.setAttribute('fill','none');nring.setAttribute('stroke-width','1.6');nm.appendChild(nring);
+const nlab=document.createElementNS(NS,'text');nlab.setAttribute('font-size','10');nlab.setAttribute('font-family','IBM Plex Mono, monospace');nlab.setAttribute('font-weight','500');nm.appendChild(nlab);
+// site map
+const sm=$('smap');const sites=[];
+for(let r=0;r<6;r++)for(let c=0;c<8;c++){const q=document.createElementNS(NS,'rect');q.setAttribute('x',2+c*18.2);q.setAttribute('y',2+r*18.2);q.setAttribute('width',16.4);q.setAttribute('height',16.4);q.setAttribute('rx',2.5);sm.appendChild(q);sites.push(q)}
+sm.setAttribute('data-tip','sites');
+
+function noise(i,s){const x=Math.sin(i*12.9898+s*78.233)*43758.5453;return x-Math.floor(x)}
+function spark(id,vals,lo,hi,opt={}){const el=$('sp-'+id);const n=vals.length;const X=i=>i/(n-1)*120,Y=v=>22-clamp((v-lo)/(hi-lo))*20;
+  let d=vals.map((v,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join('');
+  const col=opt.warn?'var(--warnfill)':'var(--muted)';
+  let h=`<path d="${d}L120,24L0,24Z" fill="${opt.warn?'var(--warnbg)':'var(--track)'}" opacity=".9"/><path d="${d}" fill="none" stroke="${col}" stroke-width="1.4" vector-effect="non-scaling-stroke"/>`;
+  if(opt.limit!=null)h=`<line x1="0" x2="120" y1="${Y(opt.limit)}" y2="${Y(opt.limit)}" stroke="var(--faint)" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/>`+h;
+  el.innerHTML=h;}
+const cache={};
+function setTxt(id,v){if(cache[id]!==v){cache[id]=v;$(id).textContent=v}}
+function setHTML(id,v){if(cache['h'+id]!==v){cache['h'+id]=v;$(id).innerHTML=v}}
+
+function renderTwin(st){
+  const view=manual==='ov'?'overview':typeof manual==='number'?'detail':st.view;const fid=typeof manual==='number'?manual:(st.focus||SC[scKey].card);
+  $('vOverview').setAttribute('aria-hidden',view!=='overview');$('vDetail').setAttribute('aria-hidden',view!=='detail');
+  // tiles
+  for(const id of CARD_IDS){const c=st.cards[id],r=tileRefs[id],[k,txt]=statusOf(c);
+    r.b.className='tile'+(k==='warn'?' warn':k==='busy'?' busy':'');r.dot.className='dot d-'+k;
+    r.loc.textContent=LOCN[c.loc]||'';r.hn.textContent=c.health;r.bar.style.width=c.health+'%';r.st.textContent=txt;}
+  for(const k in flowRefs){const on=st.flow[k]===1;flowRefs[k].w1.classList.toggle('on',on);flowRefs[k].w2.classList.toggle('on',on);
+    const warn=(k==='prober'&&Object.values(st.towers).includes('warn'));flowRefs[k].a.className='chip'+((k==='robot'||k==='cell')&&on?' on':'')+(warn?' warn':'');}
+  // crumb
+  const fc=st.cards[fid];const [sk,stx]=statusOf(fc);
+  setHTML('crumb',view==='overview'?`<span>All probe cards</span>`:
+    `<button id="back" type="button">All probe cards</button><span class="sep">›</span><span>Card ${fid} · ${LOCN[fc.loc]}</span><span class="status s-${sk}"><i class="dot d-${sk}"></i>${stx}</span>`);
+  const bk=$('back');if(bk)bk.onclick=()=>{manual='ov';setPlaying(false);tick(true)};
+  if(view!=='detail')return;
+  const sc=SC[scKey];const isF=fid===sc.card;const tw=isF?st.tw:{rise:0,fixed:0,models:{detect:'idle',forecast:'idle',fill:'idle',combine:'idle'},needle:'normal',sites:1,verdict:false,decided:false,resolved:false,sweep:null,idle:true};
+  // Sense
+  const N=40,peak=isF?sc.peak:.44;const rp=Math.round(tw.rise*14),fp=Math.round(tw.fixed*8);
+  const cres=[],yl=[];for(let i=0;i<N;i++){let v=.42+(noise(i,fid)-.5)*.03;const end=N-1-fp,startR=end-rp+1;
+    if(i>=startR&&i<=end&&rp>0){const k=(i-startR+1)/rp;v+=(peak-.42)*tw.rise*k*k}cres.push(v);
+    yl.push(98.3+(noise(i,fid+9)-.5)*.5-(v-.42)*3.2);}
+  const curC=cres[N-1-fp]??cres[N-1];const nowC=fp>0?cres[N-1]:curC;
+  spark('cres',cres,.3,1.3,{limit:1,warn:nowC>.7});const nl=isF?sc.needle:'(worst)';
+  setTxt('v-cres',`${nowC.toFixed(2)} Ω`);$('v-cres').className='v'+(nowC>.7?' warn':'');
+  const td=TD0[fid]+(fc.loc.startsWith('p')?Math.floor(st.T*2.6):Math.floor(Math.min(st.T,starts[4]||st.T)*2.6));
+  spark('td',Array.from({length:N},(_,i)=>i),0,N);setTxt('v-td',td.toLocaleString('en-US'));
+  spark('yield',yl,90,100,{warn:yl[N-1]<97.5});setTxt('v-yield',`${yl[N-1].toFixed(1)} %`);$('v-yield').className='v'+(yl[N-1]<97.5?' warn':'');
+  spark('chuck',Array.from({length:N},(_,i)=>85+(noise(i,3)-.5)*.6),80,90);setTxt('v-chuck','85 °C');
+  spark('vib',Array.from({length:N},(_,i)=>.11+(noise(i,5)-.5)*.02),0,.3);setTxt('v-vib','0.11 g');
+  spark('snd',Array.from({length:N},(_,i)=>38+(noise(i,6)-.5)*2),20,60);setTxt('v-snd','38 dB');
+  spark('ct',Array.from({length:N},(_,i)=>84.6+(noise(i,7)-.5)*.6),80,90);setTxt('v-ct','84.6 °C');
+  spark('ot',Array.from({length:N},(_,i)=>50+(noise(i,8)-.5)*.8),40,60);setTxt('v-ot','50 µm');
+  $('sp-cres').previousElementSibling.querySelector('u').textContent=isF?`Needle ${sc.needle} resistance`:'Worst needle resistance';
+  // needle map
+  const ni=isF?sc.needle-1:-1;
+  ndots.forEach((d,i)=>{let f='var(--line)';const c=i%24;
+    if(tw.sweep!=null&&c<=tw.sweep*24)f='var(--okfill)';
+    if(i===ni){f=tw.needle==='flag'?'var(--warnfill)':tw.needle==='ok'?'var(--okfill)':f}
+    d.setAttribute('fill',f);});
+  if(ni>=0&&tw.needle!=='normal'){const cx=8+(ni%24)*10.2,cy=8+Math.floor(ni/24)*10;nring.setAttribute('cx',cx);nring.setAttribute('cy',cy);nring.setAttribute('stroke',tw.needle==='flag'?'var(--warnfill)':'var(--okfill)');nring.style.display='';
+    nlab.textContent=sc.needle;nlab.setAttribute('x',cx+(ni%24>18?-34:10));nlab.setAttribute('y',cy+(Math.floor(ni/24)<2?18:-8));nlab.setAttribute('paint-order','stroke');nlab.setAttribute('stroke','var(--panel2)');nlab.setAttribute('stroke-width','4');nlab.setAttribute('fill',tw.needle==='flag'?'var(--warn)':'var(--ok)');nlab.style.display=''}
+  else{nring.style.display='none';nlab.style.display='none'}
+  // site map
+  const hot=ni>=0?Math.floor((ni%24)/3)+8*Math.floor(Math.floor(ni/24)/2):-1;
+  sites.forEach((q,i)=>{const c=i%8;const on=c/8<=tw.sites+.001;let f='var(--track)';
+    if(on){f=(i===hot&&isF&&!tw.resolved)?'var(--warnfill)':'color-mix(in srgb, var(--okfill) 28%, var(--track))'}q.setAttribute('fill',f)});
+  setHTML('verdict',tw.resolved||tw.idle?'No hot spot. Card and prober normal.':tw.verdict?`<span style="color:var(--warn)">One hot spot → the needle</span>, not prober tilt`:'&nbsp;');
+  // models
+  const outs=tw.resolved?{detect:'No drift',forecast:'No failure ahead',fill:'Estimate updated',combine:`${fc.health} / 100`}:
+    {detect:`Needle ${sc.needle} drifting`,forecast:`Fails in ${sc.left}`,fill:'Estimate added',combine:`${fc.health} / 100`};
+  for(const [k] of MOD){const s=tw.models[k];const el=$('m-'+k);
+    el.className='m '+(s==='run'?'run':s==='done'?'done'+(tw.resolved?'':' alert'):'');
+    setTxt('o-'+k,s==='run'?'running…':s==='done'?outs[k]:tw.idle?(k==='combine'?`${fc.health} / 100`:'no alert'):'waiting');}
+  // decision
+  const h=fc.health;const di=decIdx(h);
+  setTxt('hNum',h);$('hNum').className='n'+(h<70?' warn':'');
+  $('mk').style.left=`calc(${h}% )`;
+  for(let i=0;i<4;i++){$('dg-'+i).className=i===di?('pick'+(i<3?' warn':'')):''}
+  setTxt('why',h>=70?'70 and above: the card is healthy. Keep testing.':isF&&tw.decided?sc.why:'Health is falling. The action band updates with every reading.');
+  // log
+  const lg=isF?st.log:[];
+  setHTML('log',lg.length?lg.slice(-7).map(e=>`<li class="${e.state}"><time>${e.time}</time><i class="ic"></i><span>${e.text}</span></li>`).join(''):`<li class="empty">No events for this card.</li>`);
+}
+
+/* ---------- loop ---------- */
+function tick(force){const t=Math.min(T,total);const st=compute(t);
+  renderFloor(st);
+  renderTwin(st);
+  const s=steps[st.idx];setTxt('capK',`${st.idx+1} / ${steps.length}`);setTxt('capT',s.cap);
+  document.querySelectorAll('#steps i').forEach((d,i)=>d.className=i<st.idx?'done':i===st.idx?'on':'');}
+function frame(ts){if(last==null)last=ts;const dt=Math.min(.1,(ts-last)/1000);last=ts;
+  if(playing){T+=dt;if(stopAt!=null&&T>=stopAt){T=stopAt;stopAt=null;setPlaying(false)}if(T>total+HOLD)T=0;tick()}requestAnimationFrame(frame)}
+function setPlaying(v){playing=v;$('play').setAttribute('aria-label',v?'Pause':'Play');$('playIcon').setAttribute('d',v?'M3 2h3.5v12H3zM9.5 2H13v12H9.5z':'M4 2l10 6-10 6z')}
+$('play').onclick=()=>{manual=null;stopAt=null;setPlaying(!playing);if(T>=total)T=0;tick(true)};
+function playStep(i){manual=null;T=starts[i];stopAt=starts[i]+steps[i].dur-.001;setPlaying(true);tick(true)}
+$('next').onclick=()=>{const cur=compute(Math.min(T,total)).idx;const atEnd=T>=starts[cur]+steps[cur].dur-.01;playStep(atEnd||!playing&&stopAt==null&&T>starts[cur]+.01?Math.min(steps.length-1,cur+1):Math.min(steps.length-1,cur+1))};
+$('prev').onclick=()=>{const cur=compute(Math.min(T,total)).idx;playStep(Math.max(0,T-starts[cur]<.6?cur-1:cur))};
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{load(b.dataset.sc);stopAt=null;setPlaying(true)});
+document.addEventListener('keydown',e=>{if(e.target.closest('input,textarea'))return;if(e.code==='Space'){e.preventDefault();$('play').click()}else if(e.key==='ArrowRight')$('next').click();else if(e.key==='ArrowLeft')$('prev').click()});
+window.__seek=(k,t,m)=>{if(k!==scKey)load(k);manual=m??null;stopAt=null;T=t;setPlaying(false);tick(true)};window.__info=()=>({starts,total,steps:steps.map(s=>s.cap)});
+load('swap');requestAnimationFrame(frame);
+})();
+</script>
+
+</body>
+</html>
