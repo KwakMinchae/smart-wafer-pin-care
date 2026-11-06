@@ -182,29 +182,74 @@ u.g{text-decoration:underline dotted var(--faint);text-underline-offset:3px;curs
   .tiles{grid-template-columns:repeat(4,minmax(0,1fr))}
   .flow{grid-template-columns:minmax(0,1.4fr) 18px minmax(0,1fr) 18px minmax(0,1fr) 18px minmax(0,1fr) 18px minmax(0,1fr)}
 }
-@media (max-width:640px){
-  .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .flow{display:flex;flex-direction:column;align-items:stretch;gap:6px}
-  .flow .wire,.flow .arrow{display:none}
+/* phones */
+.top{display:grid;gap:10px;min-width:0}
+.tabs,.follow{display:none}
+@media (max-width:700px){.flabels{display:none}}
+@media (max-width:700px){
+  .app{gap:10px;padding-block:8px 16px}
+  .top{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--bg);padding-bottom:8px;display:grid;gap:8px}
+  body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:11;background:var(--bg)}
+  .bar{gap:8px}
+  .brand h1{font-size:18px}
+  .brand span{display:none}
+  .tr{order:2}
+  .tr button{width:32px;height:32px}
+  .steps{display:none}
+  .seg{order:3;width:100%}
+  .seg button{flex:1;padding:7px 4px}
+  .floor{border-radius:12px}
+  .floor .eyebrow{left:12px;top:9px;font-size:10px}
+  .follow{display:block;position:absolute;right:12px;top:8px;font-size:11px;color:var(--muted)}
   .legend{display:none}
-  .caption{font-size:12px;white-space:normal}
-  .pred{grid-template-columns:1fr}
-  .row{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 70px}
-  #floor{height:auto;margin-top:28px}
-  .caption{position:static;transform:none;margin:0 12px 12px;border-radius:12px;max-width:none}
+  #floor{height:190px;margin-top:24px}
+  .caption{position:static;transform:none;margin:4px 8px 8px;border-radius:10px;max-width:none;white-space:normal;padding:7px 12px;font-size:13px;box-shadow:none}
+  .twin{padding:12px;gap:10px}
+  .crumb{font-size:13px;flex-wrap:wrap;gap:6px}
+  .ov>div{min-width:0}
+  .flow{width:100%}
+  .caption .k{white-space:nowrap}
+  .tiles{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:8px;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+  .tile{flex:0 0 112px;scroll-snap-align:start;padding:9px 10px}
+  .tile .hn{font-size:16px}
+  .flow{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:6px!important}
+  .flow .mc{grid-column:span 4!important;grid-row:auto!important}
+  .flow .ad{grid-column:span 2!important;grid-row:auto!important}
+  .flow .ad small{display:none}
+  .flow .wire,.flow .arrow{display:none}
+  .flow .hub{grid-column:span 2!important;grid-row:auto!important;padding:8px;align-items:center;text-align:center}
+  .flow .hub small{display:none}
+  .chip{padding:7px 9px;font-size:13px}
+  .tabs{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px;margin-bottom:10px}
+  .tabs button{flex:1;border:0;background:none;padding:7px 4px;border-radius:7px;color:var(--muted);font-weight:500;cursor:pointer}
+  .tabs button[aria-selected="true"]{background:var(--fg);color:var(--bg)}
+  .cols{gap:10px}
+  .col.off{display:none}
+  .colt{display:none}
+  .pred{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:8px}
+  .box{padding:10px 11px}
+  .box h3{font-size:12.5px}
+  .box h3 small{display:none}
+  .row{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 72px;gap:8px}
   .models{grid-template-columns:1fr}
-  .smap{max-width:240px}
+  .m small{display:none}
+  .m{padding:7px 10px}
+  .band .segs div{font-size:11px;padding:5px}
+  .foot{font-size:11px}
+  .tip.sheet{left:0!important;right:0;top:auto!important;bottom:0;max-width:none;border-radius:14px 14px 0 0;padding:16px 18px calc(18px + env(safe-area-inset-bottom,0px));font-size:15px;transition:opacity .15s,transform .2s;transform:translateY(8px)}
+  .tip.sheet.on{transform:none}
 }
 @media (prefers-reduced-motion:reduce){.wire.on::after{animation:none}.views>section{animation:none}.log li{animation:none}}
 </style>
 
 <div class="app">
+ <div class="top">
   <header class="bar">
     <div class="brand"><h1>Smart Pin Care</h1><span>Probe card maintenance on an HBM test floor</span></div>
     <div class="seg" role="group" aria-label="Scenario">
-      <button id="sc-inplace" data-sc="inplace">Clean in place</button>
-      <button id="sc-offline" data-sc="offline">Clean offline</button>
-      <button id="sc-swap" data-sc="swap">Swap with spare</button>
+      <button id="sc-inplace" data-sc="inplace" data-long="Clean in place" data-short="In place">Clean in place</button>
+      <button id="sc-offline" data-sc="offline" data-long="Clean offline" data-short="Offline">Clean offline</button>
+      <button id="sc-swap" data-sc="swap" data-long="Swap with spare" data-short="Swap">Swap with spare</button>
     </div>
     <div class="tr">
       <button id="prev" aria-label="Previous step"><svg viewBox="0 0 16 16"><path d="M3 2h2v12H3zM14 2v12L6 8z"/></svg></button>
@@ -218,8 +263,10 @@ u.g{text-decoration:underline dotted var(--faint);text-underline-offset:3px;curs
     <div class="eyebrow">Live floor</div>
     <div class="legend"><span><i class="dot d-ok"></i>OK</span><span><i class="dot d-warn"></i>Needs action</span><span><i class="dot d-busy"></i>In progress</span></div>
     <svg id="floor" viewBox="0 0 1800 700" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Isometric view of the test floor"></svg>
+    <div class="follow" id="follow"></div>
     <div class="caption" aria-live="polite"><span class="k" id="capK">1 / 6</span><b id="capT"></b></div>
   </section>
+ </div>
 
   <section class="panel twin" aria-label="Digital twin">
     <div class="twin-h">
@@ -238,8 +285,9 @@ u.g{text-decoration:underline dotted var(--faint);text-underline-offset:3px;curs
         </div>
       </section>
       <section id="vDetail" aria-hidden="true">
+        <div class="tabs" id="tabs" role="tablist"><button data-t="sense" role="tab">Sense</button><button data-t="predict" role="tab">Predict</button><button data-t="act" role="tab">Act</button></div>
         <div class="cols">
-          <div class="col">
+          <div class="col" data-col="sense">
             <div class="colt"><b>Sense</b><span>What we measure</span></div>
             <div class="box"><h3>Already logged by tester and prober <span class="ref">[8]</span></h3>
               <div class="rows" id="logged"></div>
@@ -248,7 +296,7 @@ u.g{text-decoration:underline dotted var(--faint);text-underline-offset:3px;curs
               <div class="rows" id="added"></div>
             </div>
           </div>
-          <div class="col">
+          <div class="col" data-col="predict">
             <div class="colt"><b>Predict</b><span>What the AI concludes</span></div>
             <div class="pred">
               <div class="box"><h3>Needle map <small>1 dot = 1 needle</small></h3><svg class="nmap" id="nmap" viewBox="0 0 250 130"></svg></div>
@@ -257,7 +305,7 @@ u.g{text-decoration:underline dotted var(--faint);text-underline-offset:3px;curs
             </div>
             <div class="box"><h3>AI models</h3><div class="models" id="models"></div></div>
           </div>
-          <div class="col">
+          <div class="col" data-col="act">
             <div class="colt"><b>Act</b><span>What happens next</span></div>
             <div class="box dec"><h3>Decision</h3>
               <div class="big"><span class="n" id="hNum">88</span><small>/ 100 <u class="g" data-tip="health">health</u></small></div>
@@ -270,7 +318,7 @@ u.g{text-decoration:underline dotted var(--faint);text-underline-offset:3px;curs
       </section>
     </div>
   </section>
-  <div class="foot"><span>Simulated data for illustration. Numbers in [ ] refer to the report's references.</span><span>Hover any dotted term or floor label for a plain explanation.</span></div>
+  <div class="foot"><span>Simulated data for illustration. Numbers in [ ] refer to the report's references.</span><span id="hint">Hover any dotted term or floor label for a plain explanation.</span></div>
 </div>
 <div class="tip" id="tip" role="tooltip"></div>
 
@@ -308,7 +356,12 @@ const tip=document.getElementById('tip');
 function showTip(e){const t=e.target.closest('[data-tip]');if(!t){tip.classList.remove('on');return}
   const g=GL[t.dataset.tip];if(!g)return;tip.innerHTML=`<b>${g[0]}</b>${g[1]}`;tip.classList.add('on');
   const x=Math.min(e.clientX+14,innerWidth-296),y=Math.min(e.clientY+16,innerHeight-90);tip.style.left=x+'px';tip.style.top=y+'px';}
-document.addEventListener('mousemove',showTip);
+const MQ=matchMedia('(max-width:700px)');const isMob=()=>MQ.matches;
+document.addEventListener('mousemove',e=>{if(!isMob())showTip(e)});
+document.addEventListener('click',e=>{if(!isMob())return;const t=e.target.closest('[data-tip]');
+  if(t&&GL[t.dataset.tip]){const g=GL[t.dataset.tip];tip.innerHTML=`<b>${g[0]}</b>${g[1]}`;tip.classList.add('sheet','on')}else tip.classList.remove('on')});
+function applyMode(){const h=document.getElementById('hint');if(h)h.textContent=isMob()?'Tap any dotted term for a plain explanation.':'Hover any dotted term or floor label for a plain explanation.';document.querySelectorAll('.seg button').forEach(b=>b.textContent=isMob()?b.dataset.short:b.dataset.long);tip.classList.remove('on','sheet');}
+MQ.addEventListener('change',()=>{applyMode();cam=null});
 document.addEventListener('focusin',e=>{const t=e.target.closest('[data-tip]');if(t){const r=t.getBoundingClientRect();showTip({target:t,clientX:r.left,clientY:r.bottom})}});
 document.addEventListener('focusout',()=>tip.classList.remove('on'));
 
@@ -351,7 +404,7 @@ const SLOT=(rx,s)=>[rx+(s==='A'?.8:1.8),RY+1.0,1.05];
 const dockA=x=>x-.8, dockB=x=>x-1.8;
 
 /* ---------- build static floor ---------- */
-const gFloor=el('g'),gBack=el('g'),gRobot=el('g'),gCards=el('g'),gFront=el('g'),gLab=el('g'),gTags=el('g');
+const gFloor=el('g'),gBack=el('g'),gRobot=el('g'),gCards=el('g'),gFront=el('g'),gLab=el('g',{class:'flabels'}),gTags=el('g');
 // floor slab and tiles
 poly(gFloor,[[-6,0,0],[41,0,0],[41,12.5,0],[-6,12.5,0]],COL.floor,{stroke:'rgba(18,26,36,.35)'});
 poly(gFloor,[[41,0,0],[41,12.5,0],[41,12.5,-.5],[41,0,-.5]],'#c9d0d7',{stroke:'rgba(18,26,36,.35)'});
@@ -423,10 +476,10 @@ CELLX.forEach((x0,i)=>{const n=i+1;
   el('path',{d:`M${ax},${ay} C${ax+12},${ay-26} ${bx-6},${by-26} ${bx},${by}`,fill:'none',stroke:'#1f2937','stroke-width':4,'stroke-linecap':'round'},gBack);
   tower(gBack,x0+7.55,1.75,3.8,'p'+n);
   const [tx,ty]=P(x0+5.5,3.75,5.1);
-  const pg=el('g',{transform:`translate(${tx},${ty-22})`},gBack);
+  const pg=el('g',{transform:`translate(${tx},${ty-22})`},gBack);pg.dataset.x=tx;pg.dataset.y=ty-22;
   const pr=el('rect',{x:-34,y:-12,width:68,height:22,rx:11,fill:'#ffffff',stroke:'rgba(18,26,36,.25)'},pg);
   const pt=el('text',{x:0,y:4,'text-anchor':'middle',class:'tag',fill:'#0f1720'},pg);pt.textContent='Prober '+n;
-  prober[n]={rect:pr,text:pt};
+  prober[n]={rect:pr,text:pt,g:pg};
 });
 
 // robot (built at origin, moved by transform)
@@ -477,7 +530,7 @@ lab('Test head',[20.5,3.75,5.1],'top','head',30);
 lab('Prober',[40.3,3,2.6],'right','prober',-40);
 lab('Probe card port',[38.4,6,1.9],'right','port',10);
 lab('Control station',[-3.25,3.7,3.6],'top','control',0);
-{const bb=svg.getBBox();svg.setAttribute('viewBox',`${(bb.x-20).toFixed(0)} ${(bb.y-14).toFixed(0)} ${(bb.width+40).toFixed(0)} ${(bb.height+78).toFixed(0)}`);}
+const VB0=(()=>{const bb=svg.getBBox();return [bb.x-20,bb.y-14,bb.width+40,bb.height+78]})();svg.setAttribute('viewBox',VB0.map(v=>v.toFixed(0)).join(' '));
 
 /* ---------- scenario data ---------- */
 const BASEH={1:98,2:95,3:91,4:100,5:90,6:97,7:88};
@@ -604,6 +657,7 @@ const STEPS={
 };
 
 /* ---------- player ---------- */
+let userTab=null,userTabStep=-1,cam=null,lastSt=null;
 let scKey='swap',steps=[],starts=[],total=0,T=0,playing=true,last=null,manual=null,stopAt=null;
 const HOLD=2.5;
 function load(k){scKey=k;steps=STEPS[k](SC[k]);starts=[];total=0;for(const s of steps){starts.push(total);total+=s.dur}T=0;manual=null;
@@ -628,7 +682,8 @@ function renderFloor(st){
     const q=st.chuck[n];let dx=0,dz=0;if(q>0&&q<1){const go=ease(seg(q,0,.18)),back=ease(seg(q,.82,1));dx=(2.35)*(go-back);if(q>.18&&q<.82)dz=.06*Math.sin((q-.18)*60)}
     const [tx,ty]=D(dx,0,dz);chucks[n].g.setAttribute('transform',`translate(${tx.toFixed(1)},${ty.toFixed(1)})`);chucks[n].wg.setAttribute('opacity',q>0&&q<1?(.45+.35*Math.sin(q*40)).toFixed(2):0);}
   const [rx,ry]=D(st.robot,RY,0);robotG.setAttribute('transform',`translate(${(rx+OX).toFixed(1)},${(ry+OY).toFixed(1)})`);
-  const [tgx,tgy]=P(st.robot+3.0,RY+1.6,.5);robotTag.setAttribute('transform',`translate(${tgx.toFixed(1)},${tgy.toFixed(1)})`);
+  const TK=isMob()?1.8:1;const [tgx,tgy]=P(st.robot+3.0,RY+1.6,.5);robotTag.setAttribute('transform',`translate(${tgx.toFixed(1)},${tgy.toFixed(1)}) scale(${TK})`);
+  for(let n=1;n<=3;n++){const g=prober[n].g;g.setAttribute('transform',`translate(${g.dataset.x},${g.dataset.y}) scale(${TK})`)}
   const occ=new Set();
   for(const id of CARD_IDS){const c=st.cards[id];let pos=null;
     if(c.loc==='stock'){occ.add(c.slot)}
@@ -636,7 +691,7 @@ function renderFloor(st){
     else if(c.loc==='cell')pos=CELLPOS;else if(c.loc==='moving')pos=c.pos;
     const g=cardG[id],t=cardTag[id];
     if(pos){const [x,y]=P(...pos);g.setAttribute('transform',`translate(${x.toFixed(1)},${y.toFixed(1)})`);g.style.display='';
-      let [a,b]=P(pos[0],pos[1],pos[2]+1.05);if(c.loc==='robotA')a-=26;if(c.loc==='robotB')a+=26;t.setAttribute('transform',`translate(${a.toFixed(1)},${b.toFixed(1)})`);t.style.display='';}
+      let [a,b]=P(pos[0],pos[1],pos[2]+1.05);if(c.loc==='robotA')a-=(TK>1?66:26);if(c.loc==='robotB')a+=(TK>1?66:26);t.setAttribute('transform',`translate(${a.toFixed(1)},${b.toFixed(1)}) scale(${TK})`);t.style.display='';}
     else{g.style.display='none';t.style.display='none'}}
   stockBars.forEach((b,k)=>b.style.display=occ.has(k)?'':'none');
   cellGlow.setAttribute('opacity',st.cellGlow.toFixed(2));
@@ -659,9 +714,9 @@ CARD_IDS.forEach(id=>{const b=document.createElement('button');b.className='tile
 const MACH=[['tester','Testers ×3','Vendor A','tester'],['prober','Probers ×3','Vendor B','prober'],['robot','Robot','Vendor C','robot'],['cell','Cleaning + vision cell','Vendor D','cell']];
 const flowEl=$('flow');const flowRefs={};
 MACH.forEach(([k,n,v,tk],i)=>{
-  const a=document.createElement('div');a.className='chip';a.style.gridRow=i+1;a.style.gridColumn=1;a.innerHTML=`<b data-tip="${tk}">${n}</b><small>${v}</small>`;flowEl.appendChild(a);
+  const a=document.createElement('div');a.className='chip mc';a.style.gridRow=i+1;a.style.gridColumn=1;a.innerHTML=`<b data-tip="${tk}">${n}</b><small>${v}</small>`;flowEl.appendChild(a);
   const w1=document.createElement('div');w1.className='wire';w1.style.gridRow=i+1;w1.style.gridColumn=2;flowEl.appendChild(w1);
-  const ad=document.createElement('div');ad.className='chip';ad.style.gridRow=i+1;ad.style.gridColumn=3;ad.innerHTML=`<span><u class="g" data-tip="adapter">Adapter</u> ${v.slice(-1)}</span><small><i class="dot d-ok"></i> online</small>`;flowEl.appendChild(ad);
+  const ad=document.createElement('div');ad.className='chip ad';ad.style.gridRow=i+1;ad.style.gridColumn=3;ad.innerHTML=`<span><u class="g" data-tip="adapter">Adapter</u> ${v.slice(-1)}</span><small><i class="dot d-ok"></i> online</small>`;flowEl.appendChild(ad);
   const w2=document.createElement('div');w2.className='wire';w2.style.gridRow=i+1;w2.style.gridColumn=4;flowEl.appendChild(w2);
   flowRefs[k]={a,w1,w2};});
 flowEl.insertAdjacentHTML('beforeend',`
@@ -708,13 +763,16 @@ function renderTwin(st){
     r.b.className='tile'+(k==='warn'?' warn':k==='busy'?' busy':'');r.dot.className='dot d-'+k;
     r.loc.textContent=LOCN[c.loc]||'';r.hn.textContent=c.health;r.bar.style.width=c.health+'%';r.st.textContent=txt;}
   for(const k in flowRefs){const on=st.flow[k]===1;flowRefs[k].w1.classList.toggle('on',on);flowRefs[k].w2.classList.toggle('on',on);
-    const warn=(k==='prober'&&Object.values(st.towers).includes('warn'));flowRefs[k].a.className='chip'+((k==='robot'||k==='cell')&&on?' on':'')+(warn?' warn':'');}
+    const warn=(k==='prober'&&Object.values(st.towers).includes('warn'));flowRefs[k].a.className='chip mc'+((k==='robot'||k==='cell')&&on?' on':'')+(warn?' warn':'');}
   // crumb
   const fc=st.cards[fid];const [sk,stx]=statusOf(fc);
   setHTML('crumb',view==='overview'?`<span>All probe cards</span>`:
     `<button id="back" type="button">All probe cards</button><span class="sep">›</span><span>Card ${fid} · ${LOCN[fc.loc]}</span><span class="status s-${sk}"><i class="dot d-${sk}"></i>${stx}</span>`);
   const bk=$('back');if(bk)bk.onclick=()=>{manual='ov';setPlaying(false);tick(true)};
   if(view!=='detail')return;
+  {const auto=st.idx<=1?'sense':st.idx<=3?'predict':'act';const act=(userTab&&userTabStep===st.idx)?userTab:auto;
+   document.querySelectorAll('#tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.t===act));
+   document.querySelectorAll('.cols .col').forEach(c=>c.classList.toggle('off',isMob()&&c.dataset.col!==act));}
   const sc=SC[scKey];const isF=fid===sc.card;const tw=isF?st.tw:{rise:0,fixed:0,models:{detect:'idle',forecast:'idle',fill:'idle',combine:'idle'},needle:'normal',sites:1,verdict:false,decided:false,resolved:false,sweep:null,idle:true};
   // Sense
   const N=40,peak=isF?sc.peak:.44;const rp=Math.round(tw.rise*14),fp=Math.round(tw.fixed*8);
@@ -765,12 +823,27 @@ function renderTwin(st){
 }
 
 /* ---------- loop ---------- */
-function tick(force){const t=Math.min(T,total);const st=compute(t);
+function tick(force){const t=Math.min(T,total);const st=compute(t);lastSt=st;
   renderFloor(st);
   renderTwin(st);
   const s=steps[st.idx];setTxt('capK',`${st.idx+1} / ${steps.length}`);setTxt('capT',s.cap);
   document.querySelectorAll('#steps i').forEach((d,i)=>d.className=i<st.idx?'done':i===st.idx?'on':'');}
-function frame(ts){if(last==null)last=ts;const dt=Math.min(.1,(ts-last)/1000);last=ts;
+function camTarget(st){const aspect=Math.max(.5,(svg.clientWidth||400)/(svg.clientHeight||200));
+  const wide=()=>{const sw=sceneBB.x2-sceneBB.x+40,sh=sceneBB.y2-sceneBB.y+40;const w=Math.max(sw,sh*aspect);return{cx:(sceneBB.x+sceneBB.x2)/2,cy:(sceneBB.y+sceneBB.y2)/2,w,label:'Wide view'}};
+  if(!st)return wide();let f=null,label='';
+  const onRobot=CARD_IDS.some(id=>['robotA','robotB','moving'].includes(st.cards[id].loc));
+  if(Math.abs(st.robot-HOME)>.05||onRobot){f=P(st.robot+1.4,RY+.2,2.2);label='Following the robot'}
+  else if(st.towers.cell==='busy'){f=P(10.25,5,2.4);label='Following the cleaning cell'}
+  else{for(let n=1;n<=3;n++){if(st.towers['p'+n]!=='ok'){f=P(CELLX[n-1]+5,4,2.4);label='Following Prober '+n;break}}}
+  if(!f)return wide();
+  const w=760;return{cx:clamp(f[0],VB0[0]+w/2,VB0[0]+VB0[2]-w/2),cy:f[1],w,label};}
+function updateCam(dt){if(!isMob()){if(cam){cam=null;svg.setAttribute('viewBox',VB0.map(v=>v.toFixed(0)).join(' '))}return}
+  const tg=camTarget(lastSt);if(!cam)cam={...tg};const k=1-Math.exp(-dt*2.6);
+  cam.cx+= (tg.cx-cam.cx)*k;cam.cy+=(tg.cy-cam.cy)*k;cam.w+=(tg.w-cam.w)*k;
+  const aspect=Math.max(.5,(svg.clientWidth||400)/(svg.clientHeight||200));const h=cam.w/aspect;
+  svg.setAttribute('viewBox',`${(cam.cx-cam.w/2).toFixed(1)} ${(cam.cy-h/2).toFixed(1)} ${cam.w.toFixed(1)} ${h.toFixed(1)}`);
+  setTxt('follow',tg.label);}
+function frame(ts){if(last==null)last=ts;const dt=Math.min(.1,(ts-last)/1000);last=ts;updateCam(dt);
   if(playing){T+=dt;if(stopAt!=null&&T>=stopAt){T=stopAt;stopAt=null;setPlaying(false)}if(T>total+HOLD)T=0;tick()}requestAnimationFrame(frame)}
 function setPlaying(v){playing=v;$('play').setAttribute('aria-label',v?'Pause':'Play');$('playIcon').setAttribute('d',v?'M3 2h3.5v12H3zM9.5 2H13v12H9.5z':'M4 2l10 6-10 6z')}
 $('play').onclick=()=>{manual=null;stopAt=null;setPlaying(!playing);if(T>=total)T=0;tick(true)};
@@ -780,7 +853,8 @@ $('prev').onclick=()=>{const cur=compute(Math.min(T,total)).idx;playStep(Math.ma
 document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{load(b.dataset.sc);stopAt=null;setPlaying(true)});
 document.addEventListener('keydown',e=>{if(e.target.closest('input,textarea'))return;if(e.code==='Space'){e.preventDefault();$('play').click()}else if(e.key==='ArrowRight')$('next').click();else if(e.key==='ArrowLeft')$('prev').click()});
 window.__seek=(k,t,m)=>{if(k!==scKey)load(k);manual=m??null;stopAt=null;T=t;setPlaying(false);tick(true)};window.__info=()=>({starts,total,steps:steps.map(s=>s.cap)});
-load('swap');requestAnimationFrame(frame);
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{userTab=b.dataset.t;userTabStep=lastSt?lastSt.idx:-1;tick(true)});
+applyMode();load('swap');requestAnimationFrame(frame);
 })();
 </script>
 
